@@ -21,13 +21,14 @@ If `.mcp.json` already exists, **stop immediately** and tell the user:
 
 ## Step 2: Gather Information
 
-Ask the user for the following (all required):
+Ask the user for the following (1-3 required, 4 optional):
 
 1. **Jira project key** — the short uppercase key for your project (e.g., `MYAPP`, `TODO`, `SHOP`)
 2. **Jira site URL** — your Atlassian domain (e.g., `mycompany.atlassian.net`)
 3. **App name** — human-readable name for this project (e.g., `My Todo App`)
+4. **Claude Design system URL** *(optional)* — if you have a design system set up at claude.ai/design, provide the shareable API URL here. Press Enter to skip.
 
-Wait for the user to provide all three values before proceeding.
+Wait for the user to provide values 1-3 before proceeding. If they skip question 4, set `DESIGN_SYSTEM_URL` to `none`.
 
 ## Step 3: Write Configuration Files
 
@@ -66,6 +67,7 @@ Read the template from `~/.claude/plugins/marketplaces/user-plugins/jira-workflo
 - `{{APP_NAME}}` → the app name the user provided
 - `{{JIRA_PROJECT_KEY}}` → the project key (uppercase)
 - `{{JIRA_SITE_URL}}` → the site URL (without `https://`)
+- `{{DESIGN_SYSTEM_URL}}` → the design system URL, or `none` if skipped
 
 Write the substituted content to `CLAUDE.md` in the current directory.
 

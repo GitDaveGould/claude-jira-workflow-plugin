@@ -8,6 +8,11 @@
 - **In Progress JQL:** `project = {{JIRA_PROJECT_KEY}} AND status = "In Progress" ORDER BY updated ASC`
 - **Todo JQL:** `project = {{JIRA_PROJECT_KEY}} AND status = "To Do" ORDER BY created ASC`
 
+## Design System
+
+- **URL:** {{DESIGN_SYSTEM_URL}}
+- **Guidelines:** <!-- Populated by /plan-app after fetching or interviewing -->
+
 ## Ticket Workflow States
 
 Tickets move: **To Do → In Progress → Done**

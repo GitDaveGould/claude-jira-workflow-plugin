@@ -29,6 +29,7 @@ Read `CLAUDE.md` in the current directory. Extract:
 - Branch naming convention
 - Commit message format
 - Any tech stack or architectural decisions
+- **Design System** section — note the source URL (if any), colors, typography, spacing, component rules, and accessibility requirements
 
 If `CLAUDE.md` is missing, stop: output "ERROR: CLAUDE.md not found. Cannot proceed without project config."
 
@@ -111,12 +112,31 @@ Do not write any code during this phase.
 
 ---
 
+## Step 7.5: Apply Design System (UI tickets only)
+
+If this ticket involves any UI, frontend, or visual component:
+
+1. Check the **Design System** section of `CLAUDE.md` (extracted in Step 1)
+2. If a `DESIGN_SYSTEM_URL` is present (not `none`), use `WebFetch` to re-fetch the latest guidelines from that URL — design tokens may have been updated since planning
+3. Apply the design rules during implementation in Step 8:
+   - Use the specified color tokens (never hardcode hex values — reference tokens by name)
+   - Apply the typography scale and font families as defined
+   - Follow the spacing system (base unit and scale)
+   - Use the approved component library and patterns
+   - Meet the specified accessibility level (WCAG AA or AAA as configured)
+4. If the Design System section says `N/A` or is absent, skip this step
+
+Do not apply design rules to non-UI tickets (backend, data model, CI, etc.).
+
+---
+
 ## Step 8: Implement
 
 Write the code to satisfy each acceptance criterion.
 
 Guidelines:
 - Follow the patterns and conventions found in Step 7
+- Follow the design system rules from Step 7.5 for any UI work
 - Implement only what the AC specifies — no gold-plating
 - Write clean, readable code following existing project conventions
 - Place files in the correct locations per project structure
