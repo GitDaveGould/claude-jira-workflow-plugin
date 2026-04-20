@@ -35,6 +35,8 @@ If you already have a `plugins` array, just append the path.
 
 Close and reopen Claude Code (or start a new session) for the plugin's commands and skills to load.
 
+---
+
 ## Workflow
 
 ```
@@ -45,20 +47,97 @@ Close and reopen Claude Code (or start a new session) for the plugin's commands 
 5. /ticket-status            → check progress anytime
 ```
 
-## Commands
+---
 
-| Command | Description |
-|---------|-------------|
-| `/init-jira-workflow` | One-time project setup — writes `.mcp.json`, `CLAUDE.md`, `.claude/settings.local.json` |
+## Commands & Skills
 
-## Skills
+### `/init-jira-workflow`
 
-| Skill | Invocable By | Description |
-|-------|-------------|-------------|
-| `/plan-app` | User only | Interview → technical plan → Jira backlog creation |
-| `/build-app` | User only | Orchestrator that spawns sub-agents per ticket |
-| `/ticket-status` | User only | Sprint board summary view |
-| `work-ticket` | Claude only | Sub-agent ticket implementation |
+One-time project setup. Asks for your Jira project key, Atlassian site URL, and app name, then writes three files into the current directory:
+
+- `.mcp.json` — wires up the Atlassian MCP server so Claude can talk to Jira
+- `.claude/settings.local.json` — enables the MCP server for this project
+- `CLAUDE.md` — project config file that all sub-agents read before doing anything (project key, site URL, branch/commit conventions, design system config, ticket workflow rules)
+
+Optionally accepts a [Claude Design system](https://claude.ai/design) URL — if provided, design tokens and brand guidelines are pulled into planning and applied during UI implementation.
+
+---
+
+### `/plan-app [idea]`
+
+Turns an app idea into a structured Jira backlog via a planning interview.
+
+**Phase 1 — Interview.** Asks up to 9 questions covering users, MVP scope, platform, tech constraints, authentication, scale, and (if no design system is configured) visual style, component preferences, and accessibility requirements. All questions are asked upfront before any planning begins.
+
+**Phase 2 — Technical plan.** Produces a full technical plan: architecture overview, data model, API surface, epic breakdown, tech stack decision, design system summary, and risk areas. The plan is presented to the user for approval before any Jira tickets are created — it won't proceed without an explicit sign-off.
+
+**Phase 3 — Jira backlog creation.** Once approved, creates epics and stories in Jira in dependency order (infrastructure first, then data model, auth, feature epics, testing). Each story gets:
+- A concise summary
+- A description with context
+- Acceptance criteria formatted as `- [ ] item` checklist items (minimum 2 per story)
+- A link to its parent epic
+
+Stories are sized to be completable by one sub-agent in one session (3–6 stories per epic, split if too large).
+
+**Phase 4 — CLAUDE.md update.** Writes the confirmed tech stack and resolved design system guidelines back into `CLAUDE.md` so all future sub-agents work from the same decisions.
+
+---
+
+### `/build-app`
+
+Orchestrates implementation of the entire backlog by spawning parallel sub-agents.
+
+**Safety checks.** Reads `CLAUDE.md`, confirms git is clean (no uncommitted changes), and fetches all `To Do` stories before doing anything.
+
+**Batch ordering.** Groups stories into execution batches — stories in the same batch run in parallel, batches run sequentially. The default order is: project setup → data model + auth (parallel) → feature epics (parallel) → testing. Stories are pulled into their own sequential batch when they explicitly depend on another story's output or both modify the same core file.
+
+The batch plan is printed for user review and requires confirmation before execution begins.
+
+**Execution.** For each batch, a sub-agent (`work-ticket`) is spawned per story and all run in parallel. After each batch completes, results are reported (Done vs. Blocked) and the user confirms before the next batch starts.
+
+**Completion summary.** Reports total stories completed, remaining, and stuck, with suggested next steps.
+
+---
+
+### `/ticket-status`
+
+Prints a live sprint board summary for the current project — To Do, In Progress, and Done counts with ticket keys and titles. Flags any In Progress tickets that haven't been updated in over 2 hours as potentially stuck, with a prompt to check ticket comments or re-run `/build-app`.
+
+---
+
+### `work-ticket` (sub-agent, not user-invocable)
+
+The workhorse skill invoked by `/build-app` for each ticket. Implements a single Jira story end-to-end:
+
+1. **Read `CLAUDE.md`** — extracts project key, site URL, branch/commit conventions, and design system config before touching anything else.
+2. **Fetch ticket details** — uses `getJiraIssue` to pull the full story. If acceptance criteria are missing, comments on the ticket and stops.
+3. **Check dependencies** — if the ticket references other tickets as prerequisites, checks their status. If any are not Done, transitions this ticket back to To Do with a blocking comment and exits cleanly.
+4. **Fetch transition IDs dynamically** — uses `getTransitionsForJiraIssue` every time. Transition IDs are never hardcoded.
+5. **Transition to In Progress** — moves the ticket before writing any code.
+6. **Create feature branch** — `feature/TICKET-KEY-short-description`
+7. **Explore the codebase** — uses Glob and Grep to understand existing patterns, conventions, test structure, and file layout before writing anything.
+8. **Apply design system (UI tickets only)** — if a `DESIGN_SYSTEM_URL` is configured in `CLAUDE.md`, re-fetches the latest guidelines before implementation. Applies color tokens (never hardcoded hex values), typography scale, spacing system, component library rules, and accessibility requirements.
+9. **Implement** — writes code to satisfy each acceptance criterion exactly. No gold-plating.
+10. **Write and run tests** — if tests fail after two fix attempts, transitions the ticket back to To Do with a comment describing what's failing and exits.
+11. **Commit** — stages only the changed files with a properly formatted commit message: `[PROJ-123] imperative description`
+12. **Push and create PR** — pushes the branch and opens a PR via `gh pr create` with the ticket key, a summary of what was built, and each AC item verified.
+13. **Transition to Done** — only after the PR is created and all AC items are verified.
+14. **Add completion comment** — posts the PR URL and an implementation summary back to the Jira ticket.
+
+---
+
+## Design System Integration
+
+If you have a design system configured at [claude.ai/design](https://claude.ai/design), you can provide its shareable API URL during `/init-jira-workflow`. When set:
+
+- `/plan-app` fetches the design guidelines upfront and incorporates them into planning — so design questions are skipped in the interview
+- The resolved tokens (colors, typography, spacing, components, accessibility level) are written into `CLAUDE.md` under a `Design System` section
+- Each `work-ticket` sub-agent re-fetches the design guidelines before implementing any UI ticket, ensuring tokens are always up-to-date
+- Color values are always referenced by token name, never as hardcoded hex values
+
+If no design system URL is provided, `/plan-app` covers design via interview questions and documents the agreed style in `CLAUDE.md`.
+
+---
 
 ## Files
 
