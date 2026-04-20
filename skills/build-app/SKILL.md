@@ -21,7 +21,7 @@ Orchestrate implementation of the Jira backlog by spawning sub-agents per ticket
 1. Read `CLAUDE.md` in the current directory. If missing, stop:
    > "CLAUDE.md not found. Run `/init-jira-workflow` then `/plan-app` first."
 
-2. Extract `JIRA_PROJECT_KEY` from `CLAUDE.md`.
+2. Extract `JIRA_PROJECT_KEY` and `AGENT_MODEL` from `CLAUDE.md`. If `AGENT_MODEL` is missing or unset, default to `sonnet`.
 
 3. Check git status from the dynamic context above. If there are uncommitted changes, stop:
    > "Uncommitted changes detected. Please commit or stash your changes before running build-app."
@@ -81,7 +81,7 @@ For each batch:
 
 ### Spawn sub-agents
 
-For each story in the batch, spawn a Task (sub-agent) with this prompt:
+For each story in the batch, spawn a Task (sub-agent) using model `AGENT_MODEL` with this prompt:
 
 ```
 Work Jira ticket TICKET_KEY per the work-ticket skill at ~/.claude/plugins/marketplaces/user-plugins/jira-workflow/skills/work-ticket/SKILL.md.

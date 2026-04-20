@@ -61,6 +61,8 @@ One-time project setup. Asks for your Jira project key, Atlassian site URL, and 
 
 Optionally accepts a [Claude Design system](https://claude.ai/design) URL — if provided, design tokens and brand guidelines are pulled into planning and applied during UI implementation.
 
+Also optionally accepts a **sub-agent model** — the model used by every `work-ticket` agent when implementing tickets. If skipped, defaults to `sonnet`. See [Model Selection](#model-selection) below.
+
 ---
 
 ### `/plan-app [idea]`
@@ -123,6 +125,22 @@ The workhorse skill invoked by `/build-app` for each ticket. Implements a single
 12. **Push and create PR** — pushes the branch and opens a PR via `gh pr create` with the ticket key, a summary of what was built, and each AC item verified.
 13. **Transition to Done** — only after the PR is created and all AC items are verified.
 14. **Add completion comment** — posts the PR URL and an implementation summary back to the Jira ticket.
+
+---
+
+## Model Selection
+
+During `/init-jira-workflow` you can optionally choose which Claude model powers the `work-ticket` sub-agents that implement your tickets. If you skip this, `sonnet` is used.
+
+| Model | Speed | Cost | Best for |
+|-------|-------|------|----------|
+| `haiku` | Fastest | Lowest | Simple, well-defined tickets with clear AC |
+| `sonnet` | Balanced | Moderate | Most projects — handles complexity well **(default)** |
+| `opus` | Slowest | Highest | Complex tickets requiring deeper reasoning |
+
+The model is stored as `Agent Model` in `CLAUDE.md` and can be changed at any time by editing that field. `/build-app` reads it fresh on every run, so a change takes effect the next time you run `/build-app`.
+
+Note that model selection only applies to `work-ticket` sub-agents. The model used for `/plan-app`, `/build-app`, and `/ticket-status` is whatever model your current Claude Code session is running.
 
 ---
 

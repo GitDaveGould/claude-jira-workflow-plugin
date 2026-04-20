@@ -7,6 +7,7 @@
 - **Board JQL:** `project = {{JIRA_PROJECT_KEY}} ORDER BY created ASC`
 - **In Progress JQL:** `project = {{JIRA_PROJECT_KEY}} AND status = "In Progress" ORDER BY updated ASC`
 - **Todo JQL:** `project = {{JIRA_PROJECT_KEY}} AND status = "To Do" ORDER BY created ASC`
+- **Agent Model:** {{AGENT_MODEL}}
 
 ## Design System
 
