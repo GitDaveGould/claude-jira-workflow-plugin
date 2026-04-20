@@ -41,10 +41,12 @@ Close and reopen Claude Code (or start a new session) for the plugin's commands 
 
 ```
 1. cd ~/code/new-app && git init
-2. /init-jira-workflow        → configures project for Jira-driven dev
-3. /plan-app "my app idea"   → interview → Jira epics + stories created
-4. /build-app                → sub-agents work through all tickets
-5. /ticket-status            → check progress anytime
+2. /init-jira-workflow           → configures project for Jira-driven dev
+3. /plan-app "my app idea"      → interview → Jira epics + stories created
+4. /build-app                    → sub-agents work through all tickets
+   /build-app PROJ-E1            → build a single epic
+   /build-app PROJ-42            → build a single ticket
+5. /ticket-status                → check progress anytime
 ```
 
 ---
@@ -85,17 +87,23 @@ Stories are sized to be completable by one sub-agent in one session (3–6 stori
 
 ---
 
-### `/build-app`
+### `/build-app [TICKET-KEY or EPIC-KEY]`
 
-Orchestrates implementation of the entire backlog by spawning parallel sub-agents.
+Orchestrates implementation of tickets by spawning parallel sub-agents. Accepts an optional argument to scope what gets built:
 
-**Safety checks.** Reads `CLAUDE.md`, confirms git is clean (no uncommitted changes), and fetches all `To Do` stories before doing anything.
+| Usage | Behavior |
+|-------|----------|
+| `/build-app` | Builds all To Do stories in the project |
+| `/build-app PROJ-42` | Builds a single story |
+| `/build-app PROJ-E1` | Builds all To Do stories in one epic |
 
-**Batch ordering.** Groups stories into execution batches — stories in the same batch run in parallel, batches run sequentially. The default order is: project setup → data model + auth (parallel) → feature epics (parallel) → testing. Stories are pulled into their own sequential batch when they explicitly depend on another story's output or both modify the same core file.
+**Safety checks.** Reads `CLAUDE.md`, confirms git is clean (no uncommitted changes), and resolves the scope before doing anything. If a key is passed, the issue type is fetched to confirm it's a Story or Epic.
 
-The batch plan is printed for user review and requires confirmation before execution begins.
+**Batch ordering (multi-story modes).** Groups stories into execution batches — stories in the same batch run in parallel, batches run sequentially. The default order is: project setup → data model + auth (parallel) → feature epics (parallel) → testing. Stories are pulled into their own sequential batch when they explicitly depend on another story's output or both modify the same core file.
 
-**Execution.** For each batch, a sub-agent (`work-ticket`) is spawned per story and all run in parallel. After each batch completes, results are reported (Done vs. Blocked) and the user confirms before the next batch starts.
+The batch plan (or single-ticket confirmation) is printed for user review and requires confirmation before execution begins.
+
+**Execution.** For each batch, a sub-agent (`work-ticket`) is spawned per story and all run in parallel. After each batch completes, results are reported (Done vs. Blocked) and the user confirms before the next batch starts. Single-story mode skips batching entirely.
 
 **Completion summary.** Reports total stories completed, remaining, and stuck, with suggested next steps.
 
